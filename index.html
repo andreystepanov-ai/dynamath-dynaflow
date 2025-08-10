@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dyna Flow Visualisation</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="info">
+      <h1>Dyna Flow Visualisation</h1>
+      <p>
+        This demo illustrates the core idea behind the dynamic mathematics
+        formalism: concepts, relations and processes flow continuously and
+        interact through a field. The animation below simulates a fluid
+        flow field; each particle represents a concept moving through the
+        semantic landscape. The patterns that emerge symbolise the
+        structures described by the equations in the paper.
+      </p>
+      <p>
+        Fundamental dynamic equations used in the paper (for example, the
+        Maxwell-like field equations) establish that changes in one field
+        induce changes in another. Here, the velocity field
+        \(\mathbf{v}(x,y)\) is defined by a set of simple sine and cosine
+        functions, and particles follow this field, drawing out trajectories
+        reminiscent of the dynamic flows of ideas.
+      </p>
+    </div>
+    <canvas id="flow-canvas"></canvas>
+    <script src="script.js"></script>
+  </body>
+</html>
