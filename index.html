@@ -1,32 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dyna Flow Visualisation</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div id="info">
-      <h1>Dyna Flow Visualisation</h1>
-      <p>
-        This demo illustrates the core idea behind the dynamic mathematics
-        formalism: concepts, relations and processes flow continuously and
-        interact through a field. The animation below simulates a fluid
-        flow field; each particle represents a concept moving through the
-        semantic landscape. The patterns that emerge symbolise the
-        structures described by the equations in the paper.
-      </p>
-      <p>
-        Fundamental dynamic equations used in the paper (for example, the
-        Maxwell-like field equations) establish that changes in one field
-        induce changes in another. Here, the velocity field
-        \(\mathbf{v}(x,y)\) is defined by a set of simple sine and cosine
-        functions, and particles follow this field, drawing out trajectories
-        reminiscent of the dynamic flows of ideas.
-      </p>
-    </div>
-    <canvas id="flow-canvas"></canvas>
-    <script src="script.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dyna Flow Visualisation</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useMemo, useRef, useState } = React;
+
+    const NODES = [
+      { id: 'n1',  section: '§1',  title: 'Entity (1)',                 eq: 'E = ⟨e⃗, S(t), R, F⟩',                 x: 160,  y: 220 },
+      { id: 'n2',  section: '§2',  title: 'Axioms (9–13,16)',           eq: 'Causality · Closure · Identity · Structure · Locality', x: 460,  y: 220 },
+      { id: 'n3',  section: '§3',  title: 'Metric & Potential (25,26)', eq: 'ρ(e⃗),  Φ,  F⃗ = −∇Φ',                  x: 780,  y: 220 },
+      { id: 'n4',  section: '§4',  title: 'Semantic Motion (30,31,35)', eq: 'de⃗/dt = V⃗(e⃗,t)',                    x: 1100, y: 220 },
+      { id: 'n5',  section: '§5',  title: 'Dynamic Graphs (37)',        eq: 'd w_ij/dt = αA − βD + γC',             x: 1420, y: 220 },
+      { id: 'n8',  section: '§8',  title: 'Phase & Attractors (54,57)', eq: 'dS/dt = F(S);  Attractors',            x: 1740, y: 220 },
+      { id: 'n13', section: '§13', title: 'Drift & Entropy (88,89)',     eq: 'D_n = ∥s₀ − f_n…f₁(s₀)∥;  H(S)',      x: 2060, y: 220 },
+      { id: 'n14', section: '§14', title: 'Causality & Flux (93–99)',    eq: 'Φ_{i→j}(t) = d/dt I(si→sj;t)',         x: 2380, y: 220 },
+      { id: 'n18', section: '§18', title: 'Idea Fields (18.6)',          eq: '∇·I⃗=ρ; ∇·τ⃗=0; ∇×I⃗=∂τ⃗/∂t; ∇×τ⃗=μJ⃗+ε∂I⃗/∂t', x: 2700, y: 220 },
+      { id: 'n6',  section: '§6',  title: 'Re‑Embedding (41,42)',        eq: 'ϕ′(x)=R(ϕ,C,ΔG); + η∇Lcoherence',     x: 460,  y: 520 },
+      { id: 'n7',  section: '§7',  title: 'Meta‑Operators (45–53)',      eq: 'M: F→F;  σ(f₂∘f₁)=σ(f₂)∘σ(f₁)',       x: 780,  y: 520 },
+      { id: 'n10', section: '§10', title: 'Topologies (67–72)',          eq: 'π₁(S), H_k(S), Metamorphoses',        x: 1100, y: 520 },
+      { id: 'n11', section: '§11', title: 'Co‑Evolution (74–79)',        eq: 'sᵢ(t+Δ)=sᵢ+Σ λᵢⱼ fⱼᵢ(…)',             x: 1420, y: 520 },
+      { id: 'n12', section: '§12', title: 'Energetics (80–85)',          eq: 'E(sᵢ,sⱼ);  γ* minimal effort',        x: 1740, y: 520 },
+      { id: 'n16', section: '§16', title: 'Recursive Thought (107–111)', eq: 'T⁽ⁿ⁾; HOT hierarchy',                   x: 2060, y: 520 },
+      { id: 'n17', section: '§17', title: 'Frames & Boundaries',         eq: 'F=(O,C,∂O);  Reframing R',            x: 2380, y: 520 },
+      { id: 'n20', section: '§20', title: 'Epistemic Stability',         eq: 'S(ϕ)=⟨ϕ(t),ϕ(t+Δ)⟩ / ||…||',         x: 2700, y: 520 }
+    ];
+
+    const STREAMS = [
+      ['n1','n2'],['n2','n3'],['n3','n4'],['n4','n5'],['n5','n8'],['n8','n13'],['n13','n14'],['n14','n18'],['n18','n20'],
+      ['n3','n10'],['n10','n11'],['n11','n12'],['n12','n4'],
+      ['n6','n7'],['n7','n16'],['n16','n7'],
+      ['n11','n5']
+    ];
+
+    function usePanZoom(init = { x: 40, y: 40, k: 0.6 }) {
+      const [view, setView] = useState(init);
+      const dragging = useRef(false);
+      const last = useRef({ x: 0, y: 0 });
+
+      const onWheel = (e) => {
+        e.preventDefault();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const scale = Math.exp(-e.deltaY * 0.0015);
+        const k = Math.min(2.4, Math.max(0.25, view.k * scale));
+        const gx = (cx - view.x) / view.k;
+        const gy = (cy - view.y) / view.k;
+        const x = cx - gx * k;
+        const y = cy - gy * k;
+        setView({ x, y, k });
+      };
+
+      const onPointerDown = (e) => {
+        dragging.current = true;
+        last.current = { x: e.clientX, y: e.clientY };
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        e.currentTarget.style.cursor = 'grabbing';
+      };
+      const onPointerMove = (e) => {
+        if (!dragging.current) return;
+        const dx = e.clientX - last.current.x;
+        const dy = e.clientY - last.current.y;
+        last.current = { x: e.clientX, y: e.clientY };
+        setView(v => ({ ...v, x: v.x + dx, y: v.y + dy }));
+      };
+      const onPointerUp = (e) => {
+        dragging.current = false;
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
+        e.currentTarget.style.cursor = 'grab';
+      };
+      const onPointerCancel = (e) => {
+        dragging.current = false;
+        e.currentTarget.style.cursor = 'grab';
+      };
+
+      return { view, setView, handlers: { onWheel, onPointerDown, onPointerMove, onPointerUp, onPointerCancel } };
+    }
+
+    function EdgePath({ from, to, active }) {
+      const d = 'M ' + (from.x+170) + ' ' + from.y + ' C ' + (from.x+290) + ' ' + from.y + ', ' + (to.x-290) + ' ' + to.y + ', ' + (to.x-170) + ' ' + to.y;
+      return (
+        <g>
+          <path d={d} className='dl-under' />
+          <path d={d} className={active ? 'dl-main dl-hot' : 'dl-main'} />
+          <path d={d} className='dl-dash' />
+        </g>
+      );
+    }
+
+    function Card({ n, active }) {
+      return (
+        <g>
+          <rect x={n.x-170} y={n.y-50} width={340} height={100} rx={16} className={active ? 'dl-card dl-card-active' : 'dl-card'} />
+          <text x={n.x} y={n.y-18} textAnchor='middle' className='dl-title'>{n.section} {n.title}</text>
+          <text x={n.x} y={n.y+10} textAnchor='middle' className='dl-sub'>{n.eq}</text>
+        </g>
+      );
+    }
+
+    function DynaFlowUltraLite() {
+      const svgRef = useRef(null);
+      const { view, setView, handlers } = usePanZoom();
+      const [activeId, setActiveId] = useState('n1');
+
+      const nodeMap = useMemo(() => Object.fromEntries(NODES.map(n => [n.id, n])), []);
+      const edges = useMemo(() => STREAMS.map(([a,b]) => ({ a, b })), []);
+
+      const focus = (id) => {
+        const n = nodeMap[id]; if (!n || !svgRef.current) return;
+        const rect = svgRef.current.getBoundingClientRect();
+        const k = 1.0;
+        const x = rect.width/2 - n.x * k;
+        const y = rect.height/2 - n.y * k;
+        setActiveId(id);
+        setView({ x, y, k });
+      };
+
+      return (
+        <div className='w-full h-full bg-white text-gray-900'>
+          <style>{`
+            .dl-under { fill: none; stroke: #cfe8ff; stroke-opacity: .4; stroke-width: 12; stroke-linecap: round; }
+            .dl-main { fill: none; stroke: url(#dl-grad); stroke-width: 4; stroke-linecap: round; animation: dlPulse 3s ease-in-out infinite; }
+            .dl-hot { stroke: url(#dl-grad-hot); }
+            .dl-dash { fill: none; stroke: #16a34a; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 12 16; animation: dlFlow 2.4s linear infinite; }
+            .dl-card { fill: #fff; stroke: #e5e7eb; }
+            .dl-card-active { stroke: #06b6d4; stroke-width: 2.5; fill: #ecfeff; }
+            .dl-title { font-size: 13px; font-weight: 700; }
+            .dl-sub { font-size: 12px; opacity: .75; }
+            @keyframes dlFlow { from { stroke-dashoffset: 160; } to { stroke-dashoffset: 0; } }
+            @keyframes dlPulse { 0% { opacity: .9; } 50% { opacity: .7; } 100% { opacity: .9; } }
+          `}</style>
+
+          <div className='absolute top-3 left-3 z-10 flex gap-2 items-center p-2 rounded-2xl bg-white/90 backdrop-blur border border-slate-200 shadow-sm'>
+            <button className='px-3 py-1.5 rounded-xl border hover:bg-slate-50' onClick={()=>setView(v=>({...v,k:Math.min(2.4,v.k*1.15)}))}>Zoom +</button>
+            <button className='px-3 py-1.5 rounded-xl border hover:bg-slate-50' onClick={()=>setView(v=>({...v,k:Math.max(0.25,v.k/1.15)}))}>Zoom −</button>
+            <button className='px-3 py-1.5 rounded-xl border hover:bg-slate-50' onClick={()=>focus(activeId)}>Focus</button>
+            <button className='px-3 py-1.5 rounded-xl border hover:bg-slate-50' onClick={()=>setView({ x: 40, y: 40, k: 0.6 })}>Reset</button>
+          </div>
+
+          <div className='absolute top-3 right-3 z-10 p-2 rounded-2xl bg-white/90 backdrop-blur border border-slate-200 shadow-sm max-w-[42vw]'>
+            <div className='text-xs mb-1 opacity-70'>Quick jump</div>
+            <div className='grid grid-cols-3 gap-1 max-h-[36vh] overflow-auto'>
+              {NODES.map(n => (
+                <button key={n.id} className={'px-2 py-1 rounded-lg text-xs border ' + (activeId===n.id ? 'bg-cyan-50 border-cyan-300' : 'hover:bg-slate-50')} onClick={()=>{ focus(n.id); }}>
+                  {n.section} {n.title}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <svg ref={svgRef} className='w-full h-screen' style={{ touchAction: 'none', cursor: 'grab' }} {...handlers}>
+            <defs>
+              <linearGradient id='dl-grad' x1='0%' y1='0%' x2='100%' y2='0%'>
+                <stop offset='0%' stopColor='#06b6d4'/>
+                <stop offset='100%' stopColor='#22c55e'/>
+              </linearGradient>
+              <linearGradient id='dl-grad-hot' x1='0%' y1='0%' x2='100%' y2='0%'>
+                <stop offset='0%' stopColor='#f97316'/>
+                <stop offset='100%' stopColor='#22c55e'/>
+              </linearGradient>
+              <pattern id='dl-grid' width='80' height='80' patternUnits='userSpaceOnUse'>
+                <path d='M 80 0 L 0 0 0 80' fill='none' stroke='#e5e7eb' strokeWidth='1' />
+              </pattern>
+            </defs>
+
+            <rect x='0' y='0' width='5000' height='3000' fill='url(#dl-grid)' />
+
+            <g transform={'translate(' + view.x + ',' + view.y + ') scale(' + view.k + ')'}>
+              <text x={1440} y={100} textAnchor='middle' fontSize={24} fontWeight={800}>DynaFlow — Fluid Logic of the Paper</text>
+              <text x={1440} y={130} textAnchor='middle' fontSize={12} opacity={0.65}>Entity → Axioms → Metrics → Motion → Graphs → Phases → Drift → Flux → Fields → Stability</text>
+
+              {edges.map(({a,b}) => (
+                <EdgePath key={a + '-' + b} from={nodeMap[a]} to={nodeMap[b]} active={a===activeId} />
+              ))}
+
+              {NODES.map(n => (
+                <g key={n.id} onClick={()=>setActiveId(n.id)}>
+                  <Card n={n} active={n.id===activeId} />
+                </g>
+              ))}
+
+              <g>
+                <text x={1580} y={344} textAnchor='middle' fontSize={11} opacity={0.75}>Cycle: Motion ↔ Energetics ↔ Field</text>
+                <path d='M 1420 220 C 1580 340, 1740 340, 1740 520' fill='none' stroke='#06b6d4' strokeWidth={2} />
+                <path d='M 1740 520 C 1900 340, 1900 340, 1740 220' fill='none' stroke='#06b6d4' strokeWidth={2} />
+              </g>
+
+              <g>
+                <text x={870} y={604} textAnchor='middle' fontSize={11} opacity={0.75}>Cycle: Meta‑Operators ↔ Recursive Thought</text>
+                <path d='M 780 520 C 870 600, 870 600, 780 520' fill='none' stroke='#a855f7' strokeWidth={2} />
+              </g>
+
+              <g>
+                <rect x={160} y={960} width={980} height={120} rx={12} fill='#ffffff' stroke='#e5e7eb' />
+                <text x={180} y={990} fontSize={12} opacity={0.75}>Legend</text>
+                <text x={180} y={1010} fontSize={12} opacity={0.85}>Cards: sections & key equations. Streams: lightweight animated dashed flow.</text>
+                <text x={180} y={1030} fontSize={12} opacity={0.6}>Examples: (1),(9–13,16),(25),(26),(30),(31),(35),(37),(54),(57),(88),(98),(18.6).</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DynaFlowUltraLite />);
+  </script>
+</body>
 </html>
